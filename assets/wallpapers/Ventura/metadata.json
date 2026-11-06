@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "zayronxio.gm@gmail.com",
+                "Name": "zayronxio"
+            }
+        ],
+        "Id": "Ventura",
+        "License": "CC-BY-SA-4.0",
+        "Name": "Ventura",
+        "Name[x-test]": "xxVenturaxx"
+        },
+        "X-KDE-PlasmaImageWallpaper-AccentColor": {
+        "Dark": "#f55376",
+        "Light": "#f55376"
+        }
+    }
+

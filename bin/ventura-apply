@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# ventura-apply — terapkan ulang tema Ventura ke sesi yang sedang berjalan.
+# Tidak menyalin aset apa pun; hanya mengaktifkan tema yang sudah terpasang.
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/common.sh
+source "$HERE/../lib/common.sh"
+
+info "Menerapkan tema Ventura…"
+
+# Global theme (mengatur warna, ikon, kursor, dekorasi dalam satu paket)
+if command -v plasma-apply-lookandfeel >/dev/null 2>&1; then
+    plasma-apply-lookandfeel Apple.Ventura.Dark.P6 >/dev/null 2>&1 \
+        && ok "Look-and-feel: Apple.Ventura.Dark.P6" || warn "gagal apply look-and-feel"
+fi
+command -v plasma-apply-desktoptheme >/dev/null 2>&1 \
+    && { plasma-apply-desktoptheme AppleDark-ALL >/dev/null 2>&1 && ok "Desktop theme: AppleDark-ALL" || warn "gagal apply desktop theme"; }
+command -v plasma-apply-colorscheme >/dev/null 2>&1 \
+    && { plasma-apply-colorscheme WhiteSurDark >/dev/null 2>&1 && ok "Color scheme: WhiteSurDark" || warn "gagal apply color scheme"; }
+command -v plasma-apply-cursortheme >/dev/null 2>&1 \
+    && { plasma-apply-cursortheme Apple-cursors >/dev/null 2>&1 && ok "Cursor: Apple-cursors" || warn "gagal apply cursor"; }
+
+# Dekorasi jendela + efek
+kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key library org.kde.kwin.aurorae 2>/dev/null || true
+kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key theme __aurorae__svg__WhiteSur-dark 2>/dev/null || true
+kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key ButtonsOnLeft XIA 2>/dev/null || true
+kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key ButtonsOnRight "" 2>/dev/null || true
+kwriteconfig6 --file kwinrc --group Plugins --key kwin4_effect_yetanothermagiclampEnabled true 2>/dev/null || true
+kwriteconfig6 --file kwinrc --group Effect-blur --key NoiseStrength 7 2>/dev/null || true
+kwriteconfig6 --file kwinrc --group Effect-blur --key Saturation 152 2>/dev/null || true
+
+# Wallpaper (dicoba beberapa path, tergantung siapa yang memasang tema)
+for wp in "$XDG_DATA_HOME/wallpapers/Ventura/contents/images/4096x3072.avif" \
+          "/usr/share/wallpapers/Ventura/contents/images/4096x3072.avif"; do
+    if [[ -f "$wp" ]] && command -v plasma-apply-wallpaperimage >/dev/null 2>&1; then
+        plasma-apply-wallpaperimage "$wp" >/dev/null 2>&1 && ok "Wallpaper: Ventura"
+        break
+    fi
+done
+
+# GTK + cursor + ikon untuk aplikasi non-KDE
+if command -v gsettings >/dev/null 2>&1; then
+    gsettings set org.gnome.desktop.interface gtk-theme 'WhiteSur-Dark' 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface icon-theme 'Mkos-Big-Sur-Night' 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface cursor-theme 'Apple-cursors' 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface font-name 'Noto Sans 10' 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' 2>/dev/null || true
+fi
+
+reload_plasma
+ok "Selesai. Jika ada elemen yang belum berubah, logout lalu login sekali."

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# ventura-backup — kelola backup konfigurasi sebelum tema dipasang.
+#
+#   ventura-backup list                 daftar backup
+#   ventura-backup restore [STAMP]      kembalikan konfigurasi (default: terbaru)
+#   ventura-backup purge [STAMP]        hapus backup
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/common.sh
+source "$HERE/../lib/common.sh"
+
+BASE="$XDG_DATA_HOME/ventura-setup"
+cmd="${1:-list}"
+
+list_backups() {
+    [[ -d "$BASE" ]] || return 0
+    find "$BASE" -maxdepth 1 -type d -name 'backup-*' -printf '%f\n' 2>/dev/null | sort
+}
+
+case "$cmd" in
+    list)
+        mapfile -t bk < <(list_backups)
+        if [[ ${#bk[@]} -eq 0 ]]; then
+            echo "Belum ada backup."
+            exit 0
+        fi
+        echo "Backup tersedia:"
+        for b in "${bk[@]}"; do
+            n=$(find "$BASE/$b/files" -type f 2>/dev/null | wc -l)
+            echo "  ${b#backup-}  ($n file)"
+        done
+        ;;
+    restore)
+        stamp="${2:-}"
+        if [[ -z "$stamp" ]]; then
+            stamp="$(list_backups | tail -1 | sed 's/^backup-//')"
+        fi
+        [[ -n "$stamp" ]] || die "Tidak ada backup untuk dikembalikan."
+        src="$BASE/backup-$stamp"
+        [[ -d "$src" ]] || die "Backup tidak ditemukan: $src"
+        [[ -f "$src/manifest.tsv" ]] || die "Manifest backup tidak ada: $src/manifest.tsv"
+        info "Mengembalikan dari $src"
+        while IFS=$'\t' read -r rel orig; do
+            [[ -f "$src/files/$rel" ]] || continue
+            mkdir -p "$(dirname "$orig")"
+            rm -rf "$orig"
+            cp -a "$src/files/$rel" "$orig"
+            echo "  ← $orig"
+        done < "$src/manifest.tsv"
+        ok "Konfigurasi dikembalikan. Logout/login untuk menerapkan."
+        ;;
+    purge)
+        stamp="${2:-}"
+        if [[ -z "$stamp" ]]; then
+            rm -rf "$BASE"/backup-*
+            ok "Semua backup dihapus."
+        else
+            rm -rf "$BASE/backup-$stamp"
+            ok "Backup $stamp dihapus."
+        fi
+        ;;
+    *)
+        die "Perintah tidak dikenal: $cmd (pakai: list|restore|purge)"
+        ;;
+esac

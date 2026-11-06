@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# ventura-verify — periksa apakah semua komponen tema benar-benar terpasang.
+set -uo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/common.sh
+source "$HERE/../lib/common.sh"
+
+pass=0; fail=0
+check() {
+    local label="$1" path="$2"
+    if [[ -e "$path" ]]; then
+        ok "$label"; pass=$((pass+1))
+    else
+        err "$label  ($path)"; fail=$((fail+1))
+    fi
+}
+
+echo "== Komponen tema =="
+check "Look-and-feel Apple.Ventura.Dark.P6" "$XDG_DATA_HOME/plasma/look-and-feel/Apple.Ventura.Dark.P6/metadata.json"
+check "Splash AppleSplash"                 "$XDG_DATA_HOME/plasma/look-and-feel/AppleSplash/metadata.json"
+check "Desktop theme AppleDark-ALL"        "$XDG_DATA_HOME/plasma/desktoptheme/AppleDark-ALL/metadata.desktop"
+check "Ikon Mkos-Big-Sur-Night"            "$XDG_DATA_HOME/icons/Mkos-Big-Sur-Night/index.theme"
+check "Kursor Apple-cursors"               "$HOME/.icons/Apple-cursors/cursors"
+check "Dekorasi WhiteSur-dark"             "$XDG_DATA_HOME/aurorae/themes/WhiteSur-dark"
+check "GTK WhiteSur-Dark"                  "$XDG_DATA_HOME/themes/WhiteSur-Dark"
+check "Wallpaper Ventura"                  "$XDG_DATA_HOME/wallpapers/Ventura/metadata.json"
+check "Color scheme WhiteSurDark"          "$XDG_DATA_HOME/color-schemes/WhiteSurDark.colors"
+
+echo
+echo "== Widget panel =="
+for p in Plasma.AppBay Plasma.Flex.Hub org.kpple.kppleMenu org.kde.windowtitle.Fork \
+         zayron.simple.separator com.github.zren.commandoutput; do
+    check "plasmoid $p" "$XDG_DATA_HOME/plasma/plasmoids/$p/metadata.json"
+done
+
+echo
+echo "== Konfigurasi =="
+check "plasma-org.kde.plasma.desktop-appletsrc" "$XDG_CONFIG_HOME/plasma-org.kde.plasma.desktop-appletsrc"
+check "plasmarc"                                "$XDG_CONFIG_HOME/plasmarc"
+check "kwinrc"                                  "$XDG_CONFIG_HOME/kwinrc"
+check "kdeglobals"                              "$XDG_CONFIG_HOME/kdeglobals"
+check "gtk-3.0/settings.ini"                    "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
+check "gtk-4.0/settings.ini"                    "$XDG_CONFIG_HOME/gtk-4.0/settings.ini"
+check ".gtkrc-2.0"                              "$HOME/.gtkrc-2.0"
+check "fish config.fish"                        "$XDG_CONFIG_HOME/fish/config.fish"
+
+echo
+echo "== Nilai aktif =="
+val() { printf '  %-24s %s\n' "$1" "$2"; }
+val "widgetStyle"     "$(ini_get "$XDG_CONFIG_HOME/kdeglobals" KDE widgetStyle)"
+val "ColorScheme"     "$(ini_get "$XDG_CONFIG_HOME/kdeglobals" General ColorScheme)"
+val "Icons"           "$(ini_get "$XDG_CONFIG_HOME/kdeglobals" Icons Theme)"
+val "LookAndFeel"     "$(ini_get "$XDG_CONFIG_HOME/kdeglobals" KDE LookAndFeelPackage)"
+val "Desktop theme"   "$(ini_get "$XDG_CONFIG_HOME/plasmarc" Theme name)"
+val "Splash"          "$(ini_get "$XDG_CONFIG_HOME/ksplashrc" KSplash Theme)"
+val "Decorasi"        "$(ini_get "$XDG_CONFIG_HOME/kwinrc" org.kde.kdecoration2 theme)"
+val "GTK theme"       "$(ini_get "$XDG_CONFIG_HOME/gtk-3.0/settings.ini" Settings gtk-theme-name)"
+val "Cursor"          "$(ini_get "$XDG_CONFIG_HOME/kcminputrc" Mouse cursorTheme)"
+
+echo
+printf 'Hasil: %s%d ok%s, %s%d gagal%s\n' "$C_GREEN" "$pass" "$C_RESET" \
+    "$([[ $fail -eq 0 ]] && echo "$C_GREEN" || echo "$C_RED")" "$fail" "$C_RESET"
+exit $([[ $fail -eq 0 ]] && echo 0 || echo 1)
