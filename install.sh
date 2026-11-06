@@ -138,15 +138,14 @@ done
 ok "GTK themes terpasang"
 
 # Aurorae (dekorasi jendela macOS)
-for f in "$A"/aurorae/*; do
-    install_dir "$f" "$XDG_DATA_HOME/aurorae/themes/$(basename "$f")"
+for d in "$A"/aurorae/*/; do
+    install_dir "$d" "$XDG_DATA_HOME/aurorae/themes/$(basename "$d")"
 done
-ok "Dekorasi jendela (Aurorae) terpasang"
-
-# File referensi dekorasi (WhiteSur-darkrc, dll.) — bukan direktori theme
+# File referensi dekorasi (WhiteSur-darkrc, dll.) — di tingkat yang sama
 for f in "$A"/aurorae/*rc; do
     [[ -f "$f" ]] && install_file "$f" "$XDG_DATA_HOME/aurorae/themes/$(basename "$f")"
 done
+ok "Dekorasi jendela (Aurorae) terpasang"
 
 # Plasma desktop themes
 for d in "$A"/desktoptheme/*/; do
